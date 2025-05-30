@@ -4,6 +4,8 @@ from .models import Profile
 from django.utils import timezone
 from datetime import datetime, timedelta
 from reservation.models import Reservation, Blog
+# Import the new helper function
+from reservation.views import get_blog_posts
 from django.contrib import auth
 
 # PW 찾기 관련
@@ -18,7 +20,22 @@ from django.template.loader import render_to_string
 from django.utils.http import urlsafe_base64_encode,urlsafe_base64_decode
 from django.core.mail import EmailMessage
 from django.utils.encoding import force_bytes, force_text
+# Import reverse for redirecting with URL names
+from django.urls import reverse
 from .tokens import account_activation_token
+
+# Helper function to send activation email
+def send_activation_email(request, user, current_site, uid, token):
+    message = render_to_string('accounts/activation_email.html', {
+        'user': user,
+        'domain': current_site.domain,
+        'uid': uid,
+        'token': token,
+    })
+    mail_title = "사회대 스터디룸 예약 시스템 계정 활성화 확인"
+    mail_to = user.email
+    email = EmailMessage(mail_title, message, to=[mail_to])
+    email.send()
 
 def signup(request):
     # 포스트 방식으로 들어오면
@@ -38,35 +55,15 @@ def signup(request):
                 profile = Profile(user=user, realname=realname, department=department)
                 profile.save() # 저장
 
-                current_site = get_current_site(request) 
-                message = render_to_string('accounts/activation_email.html', {
-                    'user': user,
-                    'domain': current_site.domain,
-                    'uid': urlsafe_base64_encode(force_bytes(user.pk)),
-                    'token': account_activation_token.make_token(user),
-                })
-                mail_title = "사회대 스터디룸 예약 시스템 계정 활성화 확인"
-                email = EmailMessage(mail_title, message, to=[mail_to])
-                email.send()
-                today =  datetime.now()
-                room_1A = Reservation.objects.filter(room_date = today, room_type ='1A')
-                room_1B = Reservation.objects.filter(room_date = today, room_type ='1B')
-                room_3A = Reservation.objects.filter(room_date = today, room_type ='3A')
-                proportion = [0,0,0]
-                for r in room_1A:
-                    proportion[0] += (r.room_finish_time - r.room_start_time)
-                for r in room_1B:
-                    proportion[1] += (r.room_finish_time - r.room_start_time)
-                for r in room_3A:
-                    proportion[2] += (r.room_finish_time - r.room_start_time)
+                current_site = get_current_site(request)
+                uid = urlsafe_base64_encode(force_bytes(user.pk))
+                token = account_activation_token.make_token(user)
+                send_activation_email(request, user, current_site, uid, token)
 
-                notice_list = Blog.objects.filter(category="공지사항").order_by('-pub_date') # 공지사항
-                notices = notice_list[0:3]
-
-                lost_list = Blog.objects.filter(category="분실물").order_by('-pub_date') # 공지사항
-                losts = lost_list[0:3]
                 msg = mail_to + " 주소로 인증 메일을 발송하였습니다. " + "인증 후 이용해주세요."
-                return render(request, 'reservation/home.html', {'msg':msg, 'notices':notices, 'losts':losts, 'proportion':proportion})
+                # Redirect to reservation home view with a success message
+                # Make sure 'home' is the correct name of the URL pattern for reservation.views.home
+                return redirect(f"{reverse('home')}?msg={msg}")
             else:
                 msg = mail_to + "의 이메일로 인증한 학번 계정이 존재합니다. 비밀번호 재설정을 이용해주세요"
                 return render(request, 'accounts/login.html', {'msg':msg})
@@ -102,7 +99,8 @@ def logout(request):
         # 유저 로그아웃
         auth.logout(request)
         return redirect('home')
-    return render(request, 'accounts/signup.html')
+    # GET 요청 시 홈으로 리다이렉트
+    return redirect('home')
 
 def activate(request, uidb64, token):
     try:
@@ -116,13 +114,24 @@ def activate(request, uidb64, token):
         auth.login(request, user)
         return redirect("home")
     else:
-        notice_list = Blog.objects.filter(category="공지사항").order_by('-pub_date') # 공지사항
-        notices = notice_list[0:3]
-
-        lost_list = Blog.objects.filter(category="분실물").order_by('-pub_date') # 공지사항
-        losts = lost_list[0:3]
+        # Use the helper function to get notices and lost items
+        notices = get_blog_posts(category_name="공지사항", count=3)
+        losts = get_blog_posts(category_name="분실물", count=3)
+        # The proportion data is not available here, and might not be necessary for this error page.
+        # If it's crucial, activate might need to redirect to home with a message,
+        # or home view logic needs to be more flexible.
+        # For now, rendering reservation/home.html without proportion.
+        # Consider creating a dedicated error display page or using Django messages framework.
         return render(request, 'reservation/home.html', {'notices':notices, 'losts':losts, 'msg' : '웹 메일 인증 오류가 발생하였습니다'})
-    return 
+    # There was a 'return' statement here with no value, which is unnecessary.
+    # If the intention was to ensure the function always returns an HttpResponse,
+    # the else block already does. If user is None and token check fails, it falls through.
+    # However, the original code also had a 'return' at the very end.
+    # It should be 'return redirect("home")' or similar if activation fails but user is None.
+    # For now, I'll remove the bare 'return' and ensure the else branch is always hit if not successful.
+    # The original logic implies if user is None OR token is invalid, it shows the error.
+    # The 'return' at the end of the function is unreachable if the if/else covers all paths.
+    # Let's assume the current if/else structure is intended and the final 'return' was an artifact.
 
 class MyPasswordResetView(PasswordResetView):
     success_url=reverse_lazy('login')

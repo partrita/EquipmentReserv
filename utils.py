@@ -7,3 +7,9 @@ def get_filename(filename):
         string+=str(random.randrange(0,10))
         
     return filename.upper()+string
+
+def myrange(start, end, step):
+    r = start
+    while(r<end):
+        yield r
+        r += step

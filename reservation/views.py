@@ -6,103 +6,134 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
 import json, time
 from django.db.models import Q
+from utils import myrange # Import myrange from root utils.py
 
-# library function
-def myrange(start, end, step):
-    r = start
-    while(r<end):
-        yield r
-        r += step
+# Helper function for new view: Calculates start_day and related date parameters
+def _get_week_start_day_and_params(today):
+    today_day = today.weekday()
+    weekday_mark = 0
+    if today_day < 5:  # Weekday
+        start_day = today - timedelta(days=today_day)
+        start_day_diff = 0 - today_day
+    else:  # Weekend
+        start_day_diff = 7 - today_day
+        weekday_mark = 7 - today_day
+        start_day = today + timedelta(days=weekday_mark)
+        today_day -= 7  # Adjust today_day for date_diff calculation consistency
+    date_diff = 4 - today_day  # Represents the end day for the view's logic
+    return start_day, start_day_diff, weekday_mark, date_diff
+
+# Helper function for new view: Gets list of daily reservations
+def _get_daily_reservations_list(reservations_qs, room_type, username, start_day, myrange_func):
+    day_list = []
+    for i in range(0, 5):  # Monday to Friday
+        day = start_day + timedelta(days=i)
+        reservations_day = reservations_qs.filter(
+            room_type=room_type, user=username, room_date=day
+        ).order_by('room_start_time')
+        temp_list = []
+        for res in reservations_day:
+            temp_list.extend(myrange_func(res.room_start_time, res.room_finish_time, 0.5))
+        day_list.append(temp_list)
+    return day_list
 
 ########################## C
 @login_required
 def new(request,room_type):
-    # 요일 가져오기
     today =  datetime.now()
-    today_day = today.weekday()
-    weekday_mark = 0
+    start_day, start_day_diff, weekday_mark, date_diff = _get_week_start_day_and_params(today)
 
-    # 평일의 경우
-    if today_day < 5:
-        start_day = today -timedelta(days=today_day) # 시작 월요일 
-        start_day_diff = 0 - today_day # 차이 넣기 
-
-    # 토, 일 경우 -> 다음주와 돌아오는 그 다음주까지 예약가능
-    elif today_day>=5:
-        start_day_diff = 7-today_day # 차이
-        weekday_mark = 7-today_day # 주말차이 표시
-        start_day = today +timedelta(weekday_mark)
-        today_day -= 7
-    date_diff = 4-today_day # 마지막 날짜
-
-    # 현재 예약 상황 넘겨 주기
-    reservations = Reservation.objects.all()
-    day_list = []
+    reservations = Reservation.objects.all() # Consider filtering further if possible for performance
+    day_list = _get_daily_reservations_list(reservations, room_type, request.user.username, start_day, myrange)
     
-    # 월~금
-    for i in range(0,5):
-        day = start_day + timedelta(days=i) # 요일 증가
-        reservations_day = reservations.filter(room_type=room_type, user=request.user.username, room_date=day).order_by('room_start_time')
-        temp_list = []
-        for res in reservations_day:
-            temp_list.extend(myrange(res.room_start_time, res.room_finish_time, 0.5))
-        day_list.append(temp_list) # 요일 추가
+    return render(request, 'reservation/new.html', {
+        'room_type':room_type,
+        'date_diff':date_diff,
+        'weekday_mark':weekday_mark,
+        'day_list':day_list,
+        'start_day_diff':start_day_diff
+    })
 
-    return render(request, 'reservation/new.html', {'room_type':room_type, 'date_diff':date_diff, 'weekday_mark':weekday_mark, 'day_list':day_list, 'start_day_diff':start_day_diff})
+# Helper function for check view: Checks for reservation overlaps
+def _check_reservation_overlap(reservations_qs, room_type, reserve_date, start_time, finish_time):
+    # Convert times to float if they are not already, assuming model fields are FloatField
+    # In this case, room_start_time_vr and room_finish_time_vr are already strings from POST
+    # and Django's ORM can handle string-to-float conversion for lookups if needed,
+    # but it's safer to ensure types match model field types.
+    # However, the existing code uses them directly in filters, implying they are treated as numbers by the ORM.
+    # For direct comparison, explicit conversion is better.
+    # The problem description implies these are numeric values from the model (FloatField).
+
+    # <1> 오른쪽 겹치기 (Existing ends after new starts, Existing starts before new ends)
+    if reservations_qs.filter(
+        room_type=room_type, room_date=reserve_date,
+        room_finish_time__gt=start_time, room_start_time__lt=finish_time
+    ).exists():
+        return True
+    # <2> 사이 들어가기 (Existing starts before or at new start, Existing ends after or at new end)
+    # This condition is actually covered by <1> if interpreted broadly or by combining with <3>
+    # A more precise "contains" query:
+    if reservations_qs.filter(
+        room_type=room_type, room_date=reserve_date,
+        room_start_time__lte=start_time, room_finish_time__gte=finish_time
+    ).exists():
+        return True
+    # <3> 왼쪽 겹치기 (Existing starts before new ends, Existing ends after new starts)
+    # This is symmetric to <1> and essentially the same condition.
+    # The original code had "오른쪽 포개지기" which seems like another way to say overlap.
+    # if reservations_qs.filter(
+    # room_type=room_type,room_date=reserve_date,
+    # room_start_time__lt=finish_time, room_finish_time__gt=start_time
+    # ).exists():
+    # return True # This is identical to <1>
+
+    # <4> 밖에 감싸기 (Existing starts after or at new start, Existing ends before or at new end)
+    # This means the new reservation completely envelops an existing one.
+    if reservations_qs.filter(
+        room_type=room_type, room_date=reserve_date,
+        room_start_time__gte=start_time, room_finish_time__lte=finish_time
+    ).exists():
+        return True
+
+    # The initial set of conditions in the original code seems to cover all overlap scenarios.
+    # Let's use a simplified combined condition for overlap:
+    # An overlap occurs if (Existing Start < New End) AND (Existing End > New Start)
+    if reservations_qs.filter(
+        room_type=room_type, room_date=reserve_date,
+        room_start_time__lt=finish_time,  # Existing one starts before the new one finishes
+        room_finish_time__gt=start_time   # Existing one finishes after the new one starts
+    ).exists():
+        return True
+
+    return False
 
 # ajax 통신
 def check(request):
     room_type_vr = request.POST.get('room_type', None)
-    room_date_vr = request.POST.get('room_date', None) # ajax 통신을 통해서 template에서 POST방식으로 전달
-    room_start_time_vr = request.POST.get('room_start_time', None)
-    room_finish_time_vr = request.POST.get('room_finish_time', None)
-    
-    reservations = Reservation.objects.all()
-    reserve_date = datetime.strptime(room_date_vr, "%Y-%m-%d ").date()
-    check_error = 0 # 정상
+    room_date_vr = request.POST.get('room_date', None)
+    # Ensure these are floats for comparison if model fields are floats
+    try:
+        room_start_time_vr = float(request.POST.get('room_start_time', None))
+        room_finish_time_vr = float(request.POST.get('room_finish_time', None))
+    except (ValueError, TypeError):
+        # Handle error: invalid time format
+        return HttpResponse(json.dumps({'message': "잘못된 시간 형식입니다.", 'check_error': 1}), content_type="application/json")
 
-    # print(room_type_vr, room_date_vr, room_start_time_vr, room_finish_time_vr)
+    reservations = Reservation.objects.all() # Consider filtering by room_type and date earlier for performance
+    reserve_date = datetime.strptime(room_date_vr, "%Y-%m-%d ").date()
+
+    check_error = 0
+    message = ""
 
     # 하루 2건 검사
     if reservations.filter(user=request.user.username, room_date=reserve_date).count() >= 2:
-        message="해당일에 이미 2건의 예약을 하셨습니다"
+        message = "해당일에 이미 2건의 예약을 하셨습니다"
         check_error = 1
-        context = { 'message': message,
-                    'check_error': check_error}
-        return HttpResponse(json.dumps(context), content_type="application/json")
+    elif _check_reservation_overlap(reservations, room_type_vr, reserve_date, room_start_time_vr, room_finish_time_vr):
+        message = "이미 예약된 시간입니다"
+        check_error = 1
 
-
-    # 겹치는 시간 있는지 체크
-    message="이미 예약된 시간입니다"
-
-    # <1> 오른쪽 겹치기
-    if reservations.filter(room_type=room_type_vr,room_date=reserve_date, room_finish_time__gt=room_start_time_vr, room_start_time__lt=room_finish_time_vr ).count() != 0:
-        check_error = 1   
-        context = { 'message': message,
-                    'check_error': check_error}
-        return HttpResponse(json.dumps(context), content_type="application/json")
-    # <2> 사이 들어가기
-    if reservations.filter(room_type=room_type_vr,room_date=reserve_date, room_start_time__lte=room_start_time_vr, room_finish_time__gte=room_finish_time_vr ).count() != 0:
-        check_error = 1   
-        context = { 'message': message,
-                    'check_error': check_error}
-        return HttpResponse(json.dumps(context), content_type="application/json")
-    # <3> 오른쪽 포개지기
-    if reservations.filter(room_type=room_type_vr,room_date=reserve_date, room_start_time__lt=room_finish_time_vr, room_finish_time__gt=room_start_time_vr ).count() != 0:
-        check_error = 1   
-        context = { 'message': message,
-                    'check_error': check_error}
-        return HttpResponse(json.dumps(context), content_type="application/json")
-    # <4> 밖에 감싸기
-    if reservations.filter(room_type=room_type_vr,room_date=reserve_date, room_start_time__gte=room_start_time_vr, room_finish_time__lte=room_finish_time_vr ).count() != 0:
-        check_error = 1   
-        context = { 'message': message,
-                    'check_error': check_error}
-        return HttpResponse(json.dumps(context), content_type="application/json")
-
-    # <4> 가능
-    context = { 'message': message,
-                'check_error': check_error}
+    context = {'message': message, 'check_error': check_error}
     return HttpResponse(json.dumps(context), content_type="application/json")
 
 # C
@@ -123,29 +154,35 @@ def create(request):
     reservation.save() # 객체 저장하기
 
     # 내 예약 주소
-    return redirect('/reservation/my')               
+    return redirect('/reservation/my')
+
+# Helper function to get blog posts by category
+def get_blog_posts(category_name, count):
+    """Fetches the latest 'count' blog posts for a given 'category_name'."""
+    return Blog.objects.filter(category=category_name).order_by('-pub_date')[:count]
+
+# Helper function for home view: Calculates room reservation proportions
+def _get_room_proportions(today_date):
+    room_types = ['1A', '1B', '3A']
+    proportion = [0, 0, 0]
+    for i, room_type in enumerate(room_types):
+        reservations = Reservation.objects.filter(room_date=today_date, room_type=room_type)
+        for r in reservations:
+            proportion[i] += (r.room_finish_time - r.room_start_time)
+    return proportion
 
 ########################## R
 def home(request):
-    today =  datetime.now()
-    room_1A = Reservation.objects.filter(room_date = today, room_type ='1A')
-    room_1B = Reservation.objects.filter(room_date = today, room_type ='1B')
-    room_3A = Reservation.objects.filter(room_date = today, room_type ='3A')
-    proportion = [0,0,0]
-    for r in room_1A:
-        proportion[0] += (r.room_finish_time - r.room_start_time)
-    for r in room_1B:
-        proportion[1] += (r.room_finish_time - r.room_start_time)
-    for r in room_3A:
-        proportion[2] += (r.room_finish_time - r.room_start_time)
+    today =  datetime.now().date() # Use .date() if only date is relevant for filtering
 
-    notice_list = Blog.objects.filter(category="공지사항").order_by('-pub_date') # 공지사항
-    notices = notice_list[0:3]
+    proportion = _get_room_proportions(today)
+    notices = get_blog_posts(category_name="공지사항", count=3)
+    losts = get_blog_posts(category_name="분실물", count=3)
 
-    lost_list = Blog.objects.filter(category="분실물").order_by('-pub_date') # 공지사항
-    losts = lost_list[0:3]
+    # Get message from query parameters if present
+    msg = request.GET.get('msg', None)
 
-    return render(request, 'reservation/home.html', {'notices':notices, 'losts':losts,  'proportion':proportion})
+    return render(request, 'reservation/home.html', {'notices':notices, 'losts':losts,  'proportion':proportion, 'msg': msg})
 
 # R 
 def detail(request, blog_id) : 
