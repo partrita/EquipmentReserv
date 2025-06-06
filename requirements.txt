@@ -14,10 +14,10 @@ idna==2.7
 jmespath==0.9.5
 pathspec==0.5.9
 Pillow==7.0.0
-pypiwin32==223
+# pypiwin32==223 # Windows specific
 python-dateutil==2.8.0
 pytz==2019.3
-pywin32==227
+# pywin32==227 # Windows specific
 PyYAML==5.2
 requests==2.20.1
 semantic-version==2.5.0

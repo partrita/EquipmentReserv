@@ -20,7 +20,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # See https://docs.djangoproject.com/en/3.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = '' # secret key
+SECRET_KEY = 'dummy_secret_key_for_testing' # secret key
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -37,11 +37,14 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites', # Required for Site framework
     'reservation.apps.ReservationConfig', # Reservation App
     'accounts.apps.AccountsConfig', # Account
     'ckeditor', # text ckeditor
     'ckeditor_uploader', # text ckeditor
 ]
+
+SITE_ID = 1 # Required for django.contrib.sites
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -129,9 +132,9 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 EMAIL_USE_TLS = True
 EMAIL_PORT = 587
 EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_HOST_USER = # email
-EMAIL_HOST_PASSWORD = # email_password
-SERVER_EMAIL = # email
+EMAIL_HOST_USER = 'dummyuser@example.com' # email
+EMAIL_HOST_PASSWORD = 'dummypassword' # email_password
+SERVER_EMAIL = 'dummyuser@example.com' # email
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 # CKEDITOR
