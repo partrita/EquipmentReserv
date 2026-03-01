@@ -40,22 +40,20 @@
     </header>
     <main>
         <section id="chart">
-            <div class="chart_div" onclick="goNew1A()" style="cursor:pointer;">
-                <canvas id="chart_1" width="7vw" height="7vh"></canvas>
+            {% for equipment in equipments %}
+            <div class="chart_div" onclick="location.href='{% url 'new' equipment.id %}'" style="cursor:pointer; border: 1px solid #ccc; padding: 10px; margin: 10px; border-radius: 8px; text-align: center;">
+                <h3>{{ equipment.name }}</h3>
+                <p>{{ equipment.description|truncatewords:10 }}</p>
+                <button style="background-color: #da2127; color: white; border: none; padding: 5px 10px; border-radius: 4px;">예약하기</button>
             </div>
-            <div class="chart_div" onclick="goNew1B()" style="cursor:pointer;">
-                <canvas id="chart_2" width="7vw" height="7vh"></canvas>
-            </div>
-            <div class="chart_div" onclick="goNew3A()" style="cursor:pointer;">
-                <canvas id="chart_3" width="7vw" height="7vh"></canvas>
-            </div>
+            {% endfor %}
         </section>
         <section id="mypage">
             <a href="{% url 'myreservation' %}"><button id="btn_mypage">나의 예약 현황</button></a>
         </section>
         <section id="main_post">
             <div class="main_notice main_post_item">
-                <h4><a href="{% url 'index' "공지사항" %}">스터디룸 공지사항</a></h4>
+                <h4><a href="{% url 'index' "공지사항" %}">공지사항</a></h4>
                 <ul>
                     {% for notice in notices %}
                         <li><a href="{% url 'detail' notice.id %}">{{notice}}</a></li>
@@ -63,13 +61,23 @@
                 </ul>
             </div>
             <div class="main_board main_post_item">
-                <h4><a href="{% url 'index' "분실물" %}">스터디룸 분실물</a></h4>
+                <h4><a href="{% url 'index' "분실물" %}">분실물</a></h4>
                 <ul>
                     {% for lost in losts %}
                     <li><a href="{% url 'detail' lost.id %}">{{lost}}</a></li>
                     {% endfor %}
                 </ul>
             </div>
+        </section>
+        <section id="today_reservations" style="margin: 20px; padding: 10px; background: #f9f9f9; border-radius: 8px;">
+            <h3>오늘의 전체 예약 현황</h3>
+            <ul>
+                {% for res in reservations_today %}
+                    <li>{{ res.equipment.name }}: {{ res.room_start_time }} ~ {{ res.room_finish_time }} ({{ res.user }})</li>
+                {% empty %}
+                    <li>오늘 예약이 없습니다.</li>
+                {% endfor %}
+            </ul>
         </section>
     </main>
     <footer>
@@ -91,69 +99,6 @@
                 alert(msg);
             }
         });
-
-        // New 페이지 이동
-        function goNew1A(){
-            location.href="/reservation/new/1A";
-        }
-        function goNew1B(){
-            location.href="/reservation/new/1B";
-        }
-        function goNew3A(){
-            location.href="/reservation/new/3A";
-        }
-        //chart
-        var pro_1A = {{proportion}}[0];
-        var pro_1B = {{proportion}}[1];
-        var pro_3A = {{proportion}}[2];
-        new Chart(document.getElementById("chart_1"),
-            {
-                "type":"doughnut",
-                "data":{
-                    labels: [
-                        '1A',
-                    ],
-                    "datasets":[
-                        {   
-                            "data":[pro_1A, 12],
-                            "backgroundColor":["rgba(255, 205, 86)","rgba(79, 81, 81, .3)"],
-                            "borderWidth": 0.3
-                        },
-                    ]
-                }
-            });
-        new Chart(document.getElementById("chart_2"),
-            {
-                "type":"doughnut",
-                "data":{
-                    labels: [
-                        '1B',
-                    ],
-                    "datasets":[
-                        {
-                            "data":[pro_1B, 12],
-                            "backgroundColor":["rgba(255, 99, 132)","rgba(79, 81, 81, .3)"],
-                            "borderWidth": 0.3
-                        }
-                    ]
-                }
-            });
-        new Chart(document.getElementById("chart_3"),
-            {
-                "type":"doughnut",
-                "data":{
-                    labels: [
-                        '3A',
-                    ],
-                    "datasets":[
-                        {
-                            "data":[pro_3A, 12],
-                            "backgroundColor":["rgba(54, 162, 235)","rgba(79, 81, 81, .3)"],
-                            "borderWidth": 0.3
-                        }
-                    ]
-                }
-            });
     </script>
 </body>
 </html>

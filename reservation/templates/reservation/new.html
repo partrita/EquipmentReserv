@@ -43,17 +43,13 @@
     </header>
     <main style="height: 125vh;">
         <section id="reserve">
-            <!-- <h3>예약 하기</h3> -->
-            <div class="buttons">
-                <button id="1A" onclick="goNew1A()">1A</button>
-                <button id="1B" onclick="goNew1B()">1B</button>
-                <button id="3A" onclick="goNew3A()">3A</button>
-            </div>
             <div class="selects">
+                {% if user.is_authenticated %}
                 <form action="{% url 'create' %}" id="new_form"> 
                     <input name="user" value="{{user.username}}" type="hidden"/>
-                    <p>스터디 룸:
-                        <input readonly name="room_type" value="{{room_type}}" type="text" id="room_type" style="width:100px;height:30px;">
+                    <input name="equipment_id" value="{{equipment.id}}" type="hidden" id="equipment_id">
+                    <p>장비 이름:
+                        <input readonly value="{{equipment.name}}" type="text" style="width:150px;height:30px; background-color: #f0f0f0;">
                     </p>
                     <p>예약 날짜:
                         <input name="room_date" type="text" id="datepicker" style="width:100px;height:30px;">
@@ -92,6 +88,9 @@
                         </select>
                         <button type="button" class="btn_return" id="room_check">예약</button>
                     </form>
+                {% else %}
+                    <p>예약을 원하시면 <a href="{% url 'login' %}">로그인</a>이 필요합니다.</p>
+                {% endif %}
                 </p>
             </div>
         </section>
@@ -346,17 +345,6 @@
         });
     </script>
     <script type="text/javascript">
-        // New 페이지 이동
-        function goNew1A(){
-            location.href="/reservation/new/1A";
-        }
-        function goNew1B(){
-            location.href="/reservation/new/1B";
-        }
-        function goNew3A(){
-            location.href="/reservation/new/3A";
-        }
-
         // finish 시간 세팅
         function finishSet(){
             $('#room_finish_time').empty();
@@ -387,10 +375,7 @@
                     var option = $("<option value="+(hour+min)+">"+hour+":" +"30</option>");
                 }
                 $('#room_finish_time').append(option);
-
-                
             }
-
         }
     </script>
     <!-- 색칠하기 Script -->
@@ -412,48 +397,41 @@
                 document.getElementById(day_name[i]).innerHTML= mm.toString() + "/"+ dd.toString() + kor_day_name[i];        
 
                 for(var j=0; j<day_list[i].length; j++){
-                    document.getElementById( day_name[i]+'_'+day_list[i][j] ).innerHTML="예약";
-                    if( $('#room_type').val()=='1A')
-                        document.getElementById( day_name[i]+'_'+day_list[i][j] ).style.backgroundColor='rgba(255, 205, 86)';
-                    else if( $('#room_type').val()=='1B')
-                        document.getElementById( day_name[i]+'_'+day_list[i][j]).style.backgroundColor='rgba(255, 99, 132)';
-                    else
-                        document.getElementById( day_name[i]+'_'+day_list[i][j]).style.backgroundColor='rgba(54, 162, 235)';
+                    var element = document.getElementById( day_name[i]+'_'+day_list[i][j] );
+                    if (element) {
+                        element.innerHTML="예약";
+                        element.style.backgroundColor='rgba(218, 33, 39, 0.7)';
+                    }
                 }
             }
-            
         });
     </script>
 
     <!-- Ajax 예약 점검 -->
     <script type="text/javascript">
         $("#room_check").click(function(){
-            var room_type = $('#room_type').val();
+            var equipment_id = $('#equipment_id').val();
             var room_date = $('#datepicker').val();
             var room_start_time = $('#room_start_time').val();
             var room_finish_time= $('#room_finish_time').val();
 
-            $.ajax({ // ajax로 서버와 통신하겠다.
-                type: "POST", // 데이터를 전송하는 방법을 지정
-                url: "{% url 'check' %}", // 통신할 url을 지정
-                data: {'room_type': room_type, 'room_date': room_date, 'room_start_time':room_start_time, 'room_finish_time':room_finish_time, 'csrfmiddlewaretoken': '{{ csrf_token }}'}, // 서버로 데이터 전송시 옵션
-                dataType: "json", // 서버측에서 전송한 데이터를 어떤 형식의 데이터로서 해석할 것인가를 지정, 없으면 알아서 판단
-                // 서버측에서 전송한 Response 데이터 형식 (json)
-                // {'likes_count': post.like_count, 'message': message }
-                success: function(response){ // 통신 성공시 - 동적으로 좋아요 갯수 변경, 유저 목록 변경
-                    // 성공 시
+            $.ajax({ 
+                type: "POST", 
+                url: "{% url 'check' %}", 
+                data: {'equipment_id': equipment_id, 'room_date': room_date, 'room_start_time':room_start_time, 'room_finish_time':room_finish_time, 'csrfmiddlewaretoken': '{{ csrf_token }}'}, 
+                dataType: "json", 
+                success: function(response){ 
                     if(response.check_error == 0){
                         var result = confirm("예약하시겠습니까?");
                         if(result){
-                            $('#new_form').submit(); // 제출
+                            $('#new_form').submit(); 
                         }
                     }
-                    // 실패
                     else{
                         alert(response.message);
                     }
                 },
-                error: function(request, status, error){ // 통신 실패시 - 로그인 페이지 리다이렉트
+                error: function(request, status, error){ 
                     alert("입력값을 다시 한번 확인 부탁드립니다");
                 },
             });

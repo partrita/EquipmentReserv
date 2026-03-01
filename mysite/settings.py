@@ -23,10 +23,9 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = 'dummy_secret_key_for_testing' # secret key
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = ['*']
-
+ALLOWED_HOSTS = ['*'] # In production, set this to specific domain if possible.
 
 # Application definition
 
@@ -37,17 +36,18 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'django.contrib.sites', # Required for Site framework
-    'reservation.apps.ReservationConfig', # Reservation App
-    'accounts.apps.AccountsConfig', # Account
-    'ckeditor', # text ckeditor
-    'ckeditor_uploader', # text ckeditor
+    'django.contrib.sites', 
+    'reservation.apps.ReservationConfig',
+    'accounts.apps.AccountsConfig',
+    'ckeditor',
+    'ckeditor_uploader',
 ]
 
-SITE_ID = 1 # Required for django.contrib.sites
+SITE_ID = 1
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware', # Whitenoise
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -126,7 +126,11 @@ USE_TZ = False
 
 
 STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+STATIC_ROOT = os.path.join(BASE_DIR, 'static_root')
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, "static"),
+]
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # EMAIL 설정
 EMAIL_USE_TLS = True
