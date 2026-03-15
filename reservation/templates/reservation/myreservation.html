@@ -1,95 +1,65 @@
+{% extends 'reservation/base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>사회과학대학</title>
-    <link rel=icon href="{% static 'reservation/titlelogo.png' %}" sizes="16x16" type="image/png">
-    <link rel="stylesheet" href="{% static 'reservation/main.css'%}">
-</head>
-<body>
-    <header>
-        <div id="toplogo">
-            <img src="{% static 'reservation/knu_logo.png' %}" alt="경북대학교">
-        </div>
-        <div class="logo">
-            <img src="{% static 'reservation/navBtn.svg' %}" id="nav_btn" onclick="openNav()" alt="메뉴버튼">
-            <h1><a href="{% url 'home' %}">사회과학대학</a></h1>
-        </div>
-        <nav id="mySidenav" class="sidenav">
-            <ul>
-                <a href="javascript:void(0)" class="navCloseBtn" onclick="closeNav()">&times;</a>
-                {% if user.is_authenticated %}
-                    <a href="#"><li class="navFirst">{{user.profile.realname}}<br>{{user.username}} / {{user.profile.department}}</li></a>
-                    <a href="{% url 'myreservation' %}"><li>예약현황</li></a>
-                    <a class="nav-link" href="javascript:{document.getElementById('logout').submit()}"><li>로그아웃</li></a>
-                    <form id="logout" method="POST" action="{% url 'logout' %}">
-                        {% csrf_token %}
-                        <input type="hidden"/>
-                    </form>
-                {% else %}
-                    <a href="{% url 'login' %}"><li>로그인</li></a>
-                    <a href="{% url 'signup' %}"><li>회원가입</li></a>
-                {% endif %}
-            </ul>
-        </nav>
-    </header>
-    <main>
-        <section id="reserved_mypage">
-            <h3>예약 현황</h3>
-            {% for reservation in reservation_list %}
-            <div class="reserved_card" style="margin-bottom: 5em;">
-                <table>
-                    <tr>
-                        <th>장비 정보</th>
-                        <td>{{reservation.equipment.name}}</td>
-                    </tr>
-                    <tr>
-                        <th>예약 날짜</th>
-                        <td>{{reservation.room_date | date:'Y-m-d' }} {{reservation.room_date | date:"D" }}</td>
-                    </tr>
-                    <tr>
-                        <th>예약 시간</th>
-                        <td>{{reservation.room_start_time}}</td>
-                    </tr>
-                    <tr> 
-                        <th>마감 시간</th>
-                        <td>{{reservation.room_finish_time}}</td>
-                    </tr>
-                </table>
-                <div style="text-align: center; margin-top: 0.5em;"> <button id="room_return" onclick="confirm_return({{reservation.id}})">반납</button> </div>
-            </div>
-            {% endfor %}
-        </section>
-        
-    </main>
-    <script src="{% static 'reservation/main.js' %}"></script>
-    <script type="text/javascript">
-        function confirm_return(id){
-            var result = confirm("반환하시겠습니까?");
-            if(result){
-                location.href="/reservation/delete/"+id;
-            }
-        }
-    </script>
-</body>
 
-<style>
-    #room_return{
-        width: 70px;
-        height: 35px;
-        bottom: 15vh;
-        background: rgba(218,33,39);
-        font-size: 1em;
-        color: rgb(225,225,225);
-        border: none;
-        border-radius: 3px;
-    }
-    
-    #room_return:hover{
-        cursor: pointer;
-    }
-    </style>
-</html>
+{% block title %}내 예약 현황 - 장비 예약 시스템{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">나의 예약 현황</h1>
+</div>
+
+<div class="table-responsive shadow-sm rounded">
+    <table class="table table-hover align-middle">
+        <thead class="table-dark">
+            <tr>
+                <th scope="col">장비명</th>
+                <th scope="col">예약 날짜</th>
+                <th scope="col">사용 시간</th>
+                <th scope="col" class="text-center">작업</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for reservation in reservation_list %}
+            <tr>
+                <td class="fw-bold">{{ reservation.equipment.name }}</td>
+                <td>{{ reservation.room_date|date:"Y-m-d" }}</td>
+                <td>{{ reservation.room_start_time }} ~ {{ reservation.room_finish_time }}</td>
+                <td class="text-center">
+                    <a href="{% url 'edit' reservation.id %}" class="btn btn-outline-primary btn-sm me-1">수정</a>
+                    <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal{{ reservation.id }}">
+                        삭제
+                    </button>
+                </td>
+            </tr>
+
+            <!-- Delete Confirmation Modal -->
+            <div class="modal fade" id="deleteModal{{ reservation.id }}" tabindex="-1" aria-labelledby="deleteModalLabel{{ reservation.id }}" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="deleteModalLabel{{ reservation.id }}">예약 삭제 확인</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            정말로 "{{ reservation.equipment.name }}" 예약을 취소하시겠습니까?
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#deleteModal{{ reservation.id }}">취소</button>
+                            <a href="{% url 'delete' reservation.id %}" class="btn btn-danger">예약 취소</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <tr>
+                <td colspan="4" class="text-center py-5 text-muted">예약 내역이 없습니다.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="mt-4">
+    <a href="{% url 'home' %}" class="btn btn-secondary">홈으로 돌아가기</a>
+</div>
+{% endblock %}

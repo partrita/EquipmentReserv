@@ -1,46 +1,39 @@
-﻿{% load static %}
+{% extends 'reservation/base.html' %}
+{% load static %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>사회과학대학</title>
-    <link rel=icon href="{% static 'reservation/titlelogo.png' %}" sizes="16x16" type="image/png">
-    <link rel="stylesheet" href="{% static 'reservation/main.css' %}">
-</head>
-<body class="sign_bg">
-    <header>
-        <div id="signlogo">
-            <h1><a href="{% url 'home' %}">사회과학대학</a></h1>
-        </div>
-    </header>
-    <main>
-        <section id="sign_inputs">
-            <form method="POST" action="{% url 'login'%}">
-                {% csrf_token %}
-                <input type="text" name="username" id="student_id" placeholder="학      번">
-                <input type="password" name="password" id="password" placeholder="비밀번호">
-                <button class="sign_btn">로그인</button>
-                <!-- <input type="button" value="로그인" class="sign_btn"> -->
-                <div>
-                    <a style="font-size:0.2em" ><br/></a>
-                    <a style="color:aliceblue; font-size:0.9em; text-decoration:none;" href="{% url 'password_reset' %}">비밀번호 찾기</a> &nbsp;
-                    <a style="color:aliceblue; font-size:0.9em; text-decoration:none;" href="{% url 'signup' %}">회원가입</a> 
+{% block title %}로그인 - 장비 예약 시스템{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6 col-lg-4">
+        <div class="card shadow">
+            <div class="card-body p-5">
+                <h2 class="text-center mb-4">로그인</h2>
+                <form action="{% url 'login' %}" method="POST">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="id_username" class="form-label">아이디</label>
+                        <input type="text" name="username" class="form-control" id="id_username"
+                            placeholder="아이디를 입력하세요" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="id_password" class="form-label">비밀번호</label>
+                        <input type="password" name="password" class="form-control" id="id_password" placeholder="비밀번호"
+                            required>
+                    </div>
+                    {% if msg %}
+                    <div class="alert alert-danger small py-2">{{ msg }}</div>
+                    {% endif %}
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary">로그인</button>
+                    </div>
+                </form>
+                <div class="text-center mt-3">
+                    <p class="text-muted small">계정이 없으신가요? <a href="{% url 'signup' %}">회원가입</a></p>
+                    <p class="text-muted small mt-2"><a href="#">비밀번호를 잊으셨나요?</a></p>
                 </div>
-            </form>
-        </section>
-    </main>
-
-</body>
-<script>
-    var msg = "{{msg}}";
-    if(msg != ""){
-        alert(msg);
-    }
-</script>
-<style>
-    body.sign_bg>main>#sign_inputs input{
-        width:290px;
-    }
-</style>
-
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

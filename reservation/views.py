@@ -4,7 +4,7 @@ from django.utils import timezone
 from datetime import datetime, timedelta, date
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
-import json, time
+import json
 from django.db.models import Q
 from utils import myrange # Import myrange from root utils.py
 
@@ -120,12 +120,33 @@ def home(request):
     today = date.today()
     reservations_today = Reservation.objects.filter(room_date=today)
     
+    # For Calendar View: Fetch all reservations
+    all_reservations = Reservation.objects.all()
+    calendar_events = []
+    for res in all_reservations:
+        # room_start_time and room_finish_time are float (e.g., 9.5 for 09:30)
+        start_hour = int(res.room_start_time)
+        start_minute = int((res.room_start_time % 1) * 60)
+        end_hour = int(res.room_finish_time)
+        end_minute = int((res.room_finish_time % 1) * 60)
+        
+        start_dt = datetime.combine(res.room_date, datetime.min.time().replace(hour=start_hour, minute=start_minute))
+        end_dt = datetime.combine(res.room_date, datetime.min.time().replace(hour=end_hour, minute=end_minute))
+        
+        calendar_events.append({
+            'title': f"[{res.equipment.name}] {res.user}",
+            'start': start_dt.isoformat(),
+            'end': end_dt.isoformat(),
+            'color': '#3788d8' if res.equipment.pk % 2 == 0 else '#2c3e50', # Simple color distinction
+        })
+
     return render(request, 'reservation/home.html', {
         'equipments': equipments,
         'notices': notices,
         'losts': losts,
         'msg': msg,
-        'reservations_today': reservations_today
+        'reservations_today': reservations_today,
+        'calendar_events': json.dumps(calendar_events)
     })
 
 # R 
@@ -137,6 +158,10 @@ def index(request, category_name):
     blogs = Blog.objects.filter(category=category_name).order_by('-pub_date')
     category = category_name
     return render(request, 'reservation/index.html', {'category':category, 'blogs':blogs})
+
+# Helper function used by other apps (e.g., accounts)
+def get_blog_posts(category_name, count):
+    return Blog.objects.filter(category=category_name).order_by('-pub_date')[:count]
 
 ########################## U
 def edit(request,reservation_id):

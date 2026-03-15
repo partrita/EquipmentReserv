@@ -3,5 +3,34 @@ name = "equipmentreserv"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.14"
-dependencies = []
+requires-python = ">=3.12"
+dependencies = [
+    "asgiref>=3.11.1",
+    "awsebcli>=3.26",
+    "botocore>=1.42.68",
+    "cement>=2.10.14",
+    "certifi>=2026.2.25",
+    "chardet>=7.1.0",
+    "colorama>=0.4.6",
+    "django>=6.0.3",
+    "django-ckeditor>=6.7.3",
+    "django-js-asset>=3.1.2",
+    "docutils>=0.22.4",
+    "future>=1.0.0",
+    "gunicorn>=25.1.0",
+    "idna>=3.11",
+    "jmespath>=1.1.0",
+    "pathspec>=0.12.1",
+    "pillow>=12.1.1",
+    "python-dateutil>=2.9.0.post0",
+    "pytz>=2026.1.post1",
+    "pyyaml>=6.0.3",
+    "requests>=2.32.5",
+    "semantic-version>=2.10.0",
+    "six>=1.17.0",
+    "sqlparse>=0.5.5",
+    "termcolor>=2.5.0",
+    "urllib3>=1.26.20",
+    "wcwidth>=0.2.14",
+    "whitenoise>=6.12.0",
+]

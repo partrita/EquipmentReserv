@@ -1,462 +1,218 @@
+{% extends 'reservation/base.html' %}
 {% load static %}
+{% load reservation_extras %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>사회과학대학</title>
-    <script type="text/javascript" src="http://code.jquery.com/jquery-3.2.1.min.js"></script>
-    <script type="text/javascript" src="http://code.jquery.com/ui/1.10.3/jquery-ui.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.3/dist/Chart.min.js"></script>
-    <link type="text/css" href="http://code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.min.css" rel="stylesheet">
-    <link rel=icon href="{% static 'reservation/titlelogo.png' %}" sizes="16x16" type="image/png">
-    <link rel="stylesheet" href="{% static 'reservation/main.css' %}">
-    <!-- <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css" integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous"> -->
+{% block title %}장비 예약 - {{ equipment.name }}{% endblock %}
 
-</head>
-<body>
-    <header>
-        <div id="toplogo">
-            <img src="{% static 'reservation/knu_logo.png' %}" alt="경북대학교">
-        </div>
-        <div class="logo">
-            <img src="{% static 'reservation/navBtn.svg' %}" id="nav_btn" onclick="openNav()" alt="메뉴버튼">
-            <h1><a href="{% url 'home' %}">사회과학대학</a></h1>
-        </div>
-        <nav id="mySidenav" class="sidenav">
-            <ul>
-                <a href="javascript:void(0)" class="navCloseBtn" onclick="closeNav()">&times;</a>
+{% block extra_head %}
+    <link type="text/css" href="https://code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css" rel="stylesheet">
+    <style>
+        .schedule-table th, .schedule-table td {
+            text-align: center;
+            vertical-align: middle;
+            font-size: 0.85rem;
+            padding: 0.25rem;
+        }
+        .reserved {
+            background-color: #ffcccc !important;
+            color: #d00000;
+            font-weight: bold;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">예약 신청: {{ equipment.name }}</h5>
+            </div>
+            <div class="card-body">
                 {% if user.is_authenticated %}
-                    <a href="#"><li class="navFirst">{{user.profile.realname}}<br>{{user.username}} / {{user.profile.department}}</li></a>
-                    <a href="{% url 'myreservation' %}"><li>예약현황</li></a>
-                    <a class="nav-link" href="javascript:{document.getElementById('logout').submit()}"><li>로그아웃</li></a>
-                    <form id="logout" method="POST" action="{% url 'logout' %}">
-                        {% csrf_token %}
-                        <input type="hidden"/>
-                    </form>
-                {% else %}
-                    <a href="{% url 'login' %}"><li>로그인</li></a>
-                    <a href="{% url 'signup' %}"><li>회원가입</li></a>
-                {% endif %}
-            </ul>
-        </nav>
-    </header>
-    <main style="height: 125vh;">
-        <section id="reserve">
-            <div class="selects">
-                {% if user.is_authenticated %}
-                <form action="{% url 'create' %}" id="new_form"> 
+                <form action="{% url 'create' %}" id="new_form" method="GET"> 
                     <input name="user" value="{{user.username}}" type="hidden"/>
                     <input name="equipment_id" value="{{equipment.id}}" type="hidden" id="equipment_id">
-                    <p>장비 이름:
-                        <input readonly value="{{equipment.name}}" type="text" style="width:150px;height:30px; background-color: #f0f0f0;">
-                    </p>
-                    <p>예약 날짜:
-                        <input name="room_date" type="text" id="datepicker" style="width:100px;height:30px;">
-                    </p>
-                    <p>시작 시간: 
-                        <select name="room_start_time" id="room_start_time" onchange="finishSet()">
+                    
+                    <div class="mb-3">
+                        <label for="datepicker" class="form-label">예약 날짜</label>
+                        <input name="room_date" type="text" id="datepicker" class="form-control" readonly>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="room_start_time" class="form-label">시작 시간</label>
+                        <select name="room_start_time" id="room_start_time" class="form-select" onchange="finishSet()">
                             <option value="선택">선택</option>
-                            <option value="9">09:00</option>
-                            <option value="9.5">09:30</option>
-                            <option value="10">10:00</option>
-                            <option value="10.5">10:30</option>
-                            <option value="11">11:00</option>
-                            <option value="11.5">11:30</option>
-                            <option value="12">12:00</option>
-                            <option value="12.5">12:30</option>
-                            <option value="13">13:00</option>
-                            <option value="13.5">13:30</option>
-                            <option value="14">14:00</option>
-                            <option value="14.5">14:30</option>
-                            <option value="15">15:00</option>
-                            <option value="15.5">15:30</option>
-                            <option value="16">16:00</option>
-                            <option value="16.5">16:30</option>
-                            <option value="17">17:00</option>
-                            <option value="17.5">17:30</option>
-                            <option value="18">18:00</option>
-                            <option value="18.5">18:30</option>
-                            <option value="19">19:00</option>
-                            <option value="19.5">19:30</option>
-                            <option value="20">20:00</option>
-                            <option value="20.5">20:30</option>
+                            {% for h in "91011121314151617181920"|make_list %}
+                                <option value="{{forloop.counter0|add:9}}">{{forloop.counter0|add:9}}:00</option>
+                                <option value="{{forloop.counter0|add:9}}.5">{{forloop.counter0|add:9}}:30</option>
+                            {% endfor %}
                         </select>
-                    </p>
-                    <p>종료 시간: 
-                        <select name="room_finish_time" id="room_finish_time">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="room_finish_time" class="form-label">종료 시간</label>
+                        <select name="room_finish_time" id="room_finish_time" class="form-select">
                         </select>
-                        <button type="button" class="btn_return" id="room_check">예약</button>
-                    </form>
+                    </div>
+                    
+                    <div class="d-grid mt-4">
+                        <button type="button" class="btn btn-primary" id="room_check">예약하기</button>
+                    </div>
+                </form>
                 {% else %}
-                    <p>예약을 원하시면 <a href="{% url 'login' %}">로그인</a>이 필요합니다.</p>
+                <div class="text-center py-4">
+                    <p class="text-muted">예약을 원하시면 로그인이 필요합니다.</p>
+                    <a href="{% url 'login' %}" class="btn btn-outline-primary">로그인 페이지로</a>
+                </div>
                 {% endif %}
-                </p>
             </div>
-        </section>
-        <section id="reserve_all">
-            <h3>예약 현황</h3>
-            <table>
-                <tr>
-                    <th></th>
-                    <th id="Mon">월</th>
-                    <th id="Tue">화</th>
-                    <th id="Wed">수</th>
-                    <th id="Thur">목</th>
-                    <th id="Fri">금</th>
-                </tr>
-                <tr>
-                    <td>09:00</td>
-                    <td id="Mon_9"></td>
-                    <td id="Tue_9"></td>
-                    <td id="Wed_9"></td>
-                    <td id="Thur_9"></td>
-                    <td id="Fri_9"></td>
-                </tr>
-                <tr>
-                    <td>09:30</td>
-                    <td id="Mon_9.5"></td>
-                    <td id="Tue_9.5"></td>
-                    <td id="Wed_9.5"></td>
-                    <td id="Thur_9.5"></td>
-                    <td id="Fri_9.5"></td>
-                </tr>
-                <tr>
-                    <td>10:00</td>
-                    <td id="Mon_10"></td>
-                    <td id="Tue_10"></td>
-                    <td id="Wed_10"></td>
-                    <td id="Thur_10"></td>
-                    <td id="Fri_10"></td>
-                </tr>
-                <tr>
-                    <td>10:30</td>
-                    <td id="Mon_10.5"></td>
-                    <td id="Tue_10.5"></td>
-                    <td id="Wed_10.5"></td>
-                    <td id="Thur_10.5"></td>
-                    <td id="Fri_10.5"></td>
-                </tr>
-                <tr>
-                    <td>11:00</td>
-                    <td id="Mon_11"></td>
-                    <td id="Tue_11"></td>
-                    <td id="Wed_11"></td>
-                    <td id="Thur_11"></td>
-                    <td id="Fri_11"></td>
-                </tr>
-                <tr>
-                    <td>11:30</td>
-                    <td id="Mon_11.5"></td>
-                    <td id="Tue_11.5"></td>
-                    <td id="Wed_11.5"></td>
-                    <td id="Thur_11.5"></td>
-                    <td id="Fri_11.5"></td>
-                </tr>
-                <tr></tr>
-                <tr></tr>
-                <tr>
-                    <td>12:00</td>
-                    <td id="Mon_12"></td>
-                    <td id="Tue_12"></td>
-                    <td id="Wed_12"></td>
-                    <td id="Thur_12"></td>
-                    <td id="Fri_12"></td>
-                </tr>
-                <tr>
-                    <td>12:30</td>
-                    <td id="Mon_12.5"></td>
-                    <td id="Tue_12.5"></td>
-                    <td id="Wed_12.5"></td>
-                    <td id="Thur_12.5"></td>
-                    <td id="Fri_12.5"></td>
-                </tr>
-                <tr>
-                    <td>13:00</td>
-                    <td id="Mon_13"></td>
-                    <td id="Tue_13"></td>
-                    <td id="Wed_13"></td>
-                    <td id="Thur_13"></td>
-                    <td id="Fri_13"></td>
-                </tr>
-                <tr>
-                    <td>13:30</td>
-                    <td id="Mon_13.5"></td>
-                    <td id="Tue_13.5"></td>
-                    <td id="Wed_13.5"></td>
-                    <td id="Thur_13.5"></td>
-                    <td id="Fri_13.5"></td>
-                </tr>
-                <tr>
-                    <td>14:00</td>
-                    <td id="Mon_14"></td>
-                    <td id="Tue_14"></td>
-                    <td id="Wed_14"></td>
-                    <td id="Thur_14"></td>
-                    <td id="Fri_14"></td>
-                </tr>
-                <tr>
-                    <td>14:30</td>
-                    <td id="Mon_14.5"></td>
-                    <td id="Tue_14.5"></td>
-                    <td id="Wed_14.5"></td>
-                    <td id="Thur_14.5"></td>
-                    <td id="Fri_14.5"></td>
-                </tr>
-                <tr></tr>
-                <tr></tr>
-                <tr>
-                    <td>15:00</td>
-                    <td id="Mon_15"></td>
-                    <td id="Tue_15"></td>
-                    <td id="Wed_15"></td>
-                    <td id="Thur_15"></td>
-                    <td id="Fri_15"></td>
-                </tr>
-                <tr>
-                    <td>15:30</td>
-                    <td id="Mon_15.5"></td>
-                    <td id="Tue_15.5"></td>
-                    <td id="Wed_15.5"></td>
-                    <td id="Thur_15.5"></td>
-                    <td id="Fri_15.5"></td>
-                </tr>
-                <tr>
-                    <td>16:00</td>
-                    <td id="Mon_16"></td>
-                    <td id="Tue_16"></td>
-                    <td id="Wed_16"></td>
-                    <td id="Thur_16"></td>
-                    <td id="Fri_16"></td>
-                </tr>
-                <tr>
-                    <td>16:30</td>
-                    <td id="Mon_16.5"></td>
-                    <td id="Tue_16.5"></td>
-                    <td id="Wed_16.5"></td>
-                    <td id="Thur_16.5"></td>
-                    <td id="Fri_16.5"></td>
-                </tr>
-                <tr>
-                    <td>17:00</td>
-                    <td id="Mon_17"></td>
-                    <td id="Tue_17"></td>
-                    <td id="Wed_17"></td>
-                    <td id="Thur_17"></td>
-                    <td id="Fri_17"></td>
-                </tr>
-                <tr>
-                    <td>17:30</td>
-                    <td id="Mon_17.5"></td>
-                    <td id="Tue_17.5"></td>
-                    <td id="Wed_17.5"></td>
-                    <td id="Thur_17.5"></td>
-                    <td id="Fri_17.5"></td>
-                </tr>
-                <tr></tr>
-                <tr></tr>
-                <tr>
-                    <td>18:00</td>
-                    <td id="Mon_18"></td>
-                    <td id="Tue_18"></td>
-                    <td id="Wed_18"></td>
-                    <td id="Thur_18"></td>
-                    <td id="Fri_18"></td>
-                </tr>
-                <tr>
-                    <td>18:30</td>
-                    <td id="Mon_18.5"></td>
-                    <td id="Tue_18.5"></td>
-                    <td id="Wed_18.5"></td>
-                    <td id="Thur_18.5"></td>
-                    <td id="Fri_18.5"></td>
-                </tr>
-                <tr>
-                    <td>19:00</td>
-                    <td id="Mon_19"></td>
-                    <td id="Tue_19"></td>
-                    <td id="Wed_19"></td>
-                    <td id="Thur_19"></td>
-                    <td id="Fri_19"></td>
-                </tr>
-                <tr>
-                    <td>19:30</td>
-                    <td id="Mon_19.5"></td>
-                    <td id="Tue_19.5"></td>
-                    <td id="Wed_19.5"></td>
-                    <td id="Thur_19.5"></td>
-                    <td id="Fri_19.5"></td>
-                </tr>
-                <tr>
-                    <td>20:00</td>
-                    <td id="Mon_20"></td>
-                    <td id="Tue_20"></td>
-                    <td id="Wed_20"></td>
-                    <td id="Thur_20"></td>
-                    <td id="Fri_20"></td>
-                </tr>
-                <tr>
-                    <td>20:30</td>
-                    <td id="Mon_20.5"></td>
-                    <td id="Tue_20.5"></td>
-                    <td id="Wed_20.5"></td>
-                    <td id="Thur_20.5"></td>
-                    <td id="Fri_20.5"></td>
-                </tr>
-            </table>
-        </section>
-    </main>
-    <footer>
-        <img src="{% static 'reservation/footer_logo.png' %}" alt="footer_logo" />
-        <span class="contact" style="font-size:x-large; color:inherit ;">
-                <a href="https://pf.kakao.com/_JdHwxb" target="_blank" style="color:white;"><i class="far fa-comment"></i></a>
-                <a href="https://www.instagram.com/knu_highlight/?hl=ko" target="_blank" style="color:white;"><i class="fab fa-instagram"></i></a>
-                <a href="https://www.facebook.com/knussc/" target="_blank" style="color:white;"><i class="fab fa-facebook-square"></i></a>
-        </span>
-        <p>사회과학대학 Tel: 053-950-5202~4</p>
-        <p>멋쟁이 사자처럼 <span style="font-size: x-small;"><a target="_blank" style="color:white; text-decoration: none;" href="https://yoonshinwoong.github.io/">윤신웅</a> <a target="_blank" style="color:white; text-decoration: none;"href="https://github.com/yeonjudkwl">홍연주</a></span></p>
-        <p class="copyright">Copyright(c) Kyungpook National University. All rights reserved.</p>
-    </footer>
-    <script src="{% static 'reservation/main.js' %}"></script>
+        </div>
+        <div class="d-grid shadow-sm">
+            <a href="{% url 'home' %}" class="btn btn-outline-secondary">목록으로 돌아가기</a>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">주간 예약 현황</h5>
+                <small>월요일 ~ 금요일</small>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-bordered mb-0 schedule-table">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 15%;">시간</th>
+                                <th id="Mon" style="width: 17%;">월</th>
+                                <th id="Tue" style="width: 17%;">화</th>
+                                <th id="Wed" style="width: 17%;">수</th>
+                                <th id="Thur" style="width: 17%;">목</th>
+                                <th id="Fri" style="width: 17%;">금</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for time_val in "9,9.5,10,10.5,11,11.5,12,12.5,13,13.5,14,14.5,15,15.5,16,16.5,17,17.5,18,18.5,19,19.5,20,20.5"|split:"," %}
+                            <tr>
+                                <td class="table-light small">
+                                    {% if ".5" in time_val %}
+                                        {{ time_val|replace:".5,:30"|zfill:5 }}
+                                    {% else %}
+                                        {{ time_val|add:":00"|zfill:5 }}
+                                    {% endif %}
+                                </td>
+                                <td id="Mon_{{time_val}}"></td>
+                                <td id="Tue_{{time_val}}"></td>
+                                <td id="Wed_{{time_val}}"></td>
+                                <td id="Thur_{{time_val}}"></td>
+                                <td id="Fri_{{time_val}}"></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
     <script>
         $(function() {
-            //input을 datepicker로 선언
             $("#datepicker").datepicker({
-                dateFormat: 'yy-mm-dd ' //Input Display Format 변경
-                ,showOtherMonths: false //빈 공간에 현재월의 앞뒤월의 날짜를 표시
-                ,showMonthAfterYear:false //년도 먼저 나오고, 뒤에 월 표시
-                ,changeYear: false //콤보박스에서 년 선택 가능
-                ,changeMonth: false //콤보박스에서 월 선택 가능                
-                ,showOn: "both" //button:버튼을 표시하고,버튼을 눌러야만 달력 표시 ^ both:버튼을 표시하고,버튼을 누르거나 input을 클릭하면 달력 표시  
-                ,buttonImage: "http://jqueryui.com/resources/demos/datepicker/images/calendar.gif" //버튼 이미지 경로
-                ,buttonImageOnly: true //기본 버튼의 회색 부분을 없애고, 이미지만 보이게 함
-                ,buttonText: "선택" //버튼에 마우스 갖다 댔을 때 표시되는 텍스트                
-                ,yearSuffix: "년" //달력의 년도 부분 뒤에 붙는 텍스트
-                ,monthNamesShort: ['1','2','3','4','5','6','7','8','9','10','11','12'] //달력의 월 부분 텍스트
-                ,monthNames: ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'] //달력의 월 부분 Tooltip 텍스트
-                ,dayNamesMin: ['일','월','화','수','목','금','토'] //달력의 요일 부분 텍스트
-                ,dayNames: ['일요일','월요일','화요일','수요일','목요일','금요일','토요일'] //달력의 요일 부분 Tooltip 텍스트
-                ,minDate: "+{{weekday_mark}}D" //최소 선택일자(-1D:하루전, -1M:한달전, -1Y:일년전)
-                ,maxDate: "+{{date_diff}}D" //최대 선택일자(+1D:하루후, -1M:한달후, -1Y:일년후)                
-            });                    
-            
-            //초기값을 오늘 날짜로 설정
-            $('#datepicker').datepicker('setDate', 'today'); //(-1D:하루전, -1M:한달전, -1Y:일년전), (+1D:하루후, -1M:한달후, -1Y:일년후)            
+                dateFormat: 'yy-mm-dd ',
+                showMonthAfterYear: true,
+                dayNamesMin: ['일','월','화','수','목','금','토'],
+                monthNames: ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'],
+                minDate: "+{{weekday_mark}}D",
+                maxDate: "+{{date_diff}}D"
+            });
+            $('#datepicker').datepicker('setDate', 'today');
         });
-    </script>
-    <script type="text/javascript">
-        // finish 시간 세팅
+
         function finishSet(){
             $('#room_finish_time').empty();
-            var start_time = $('#room_start_time').val(); // 시작시간 가져오기
-            var hour = Math.floor(start_time); // 시 가져오기
-            var min = start_time-hour // 분 가져오기 
-            for(var cnt = 0; cnt<4; cnt++){                
-                // 시간 늘리기
-                min = min+0.5;
+            var start_time = parseFloat($('#room_start_time').val());
+            if (isNaN(start_time)) return;
+
+            var hour = Math.floor(start_time);
+            var min = start_time - hour;
+            
+            for(var cnt = 0; cnt < 4; cnt++){                
+                min += 0.5;
                 if(min == 1){
-                    hour+=1;
-                    min=0;
+                    hour += 1;
+                    min = 0;
                 }
+                if(hour + min > 21) break;
 
-                // 탈출 조건
-                if(hour+min == 21.5){
-                    break;
-                }
-
-                // 출력양식 조절
-                if(hour == 9 && min== 0.5){
-                    var option = $("<option value="+(hour+min)+">0"+hour+":"+ "30</option>");
-                }
-                else if(min==0){
-                    var option = $("<option value="+(hour+min)+">"+hour+":"+ min + "0</option>");
-                }
-                else{
-                    var option = $("<option value="+(hour+min)+">"+hour+":" +"30</option>");
-                }
+                var timeStr = hour + ":" + (min === 0 ? "00" : "30");
+                var option = $("<option value=" + (hour + min) + ">" + timeStr + "</option>");
                 $('#room_finish_time').append(option);
             }
         }
-    </script>
-    <!-- 색칠하기 Script -->
-    <script type="text/javascript">
+
         $(function() {
             var day_list = {{day_list}};
             var day_name = ['Mon', 'Tue', 'Wed', 'Thur', 'Fri'];
-            var kor_day_name = [' 월', ' 화', ' 수', ' 목', ' 금'];
-            // 시작 날짜 세팅
+            var kor_day_name = ['(월)', '(화)', '(수)', '(목)', '(금)'];
             var day = new Date();
-            day.setDate(day.getDate()+{{start_day_diff}}-1);
+            day.setDate(day.getDate() + {{start_day_diff}} - 1);
 
-            // 예약 세팅
-            for(var i =0; i<5;i++){
-                // 날짜 세팅
-                day.setDate(day.getDate()+1);
+            for(var i = 0; i < 5; i++){
+                day.setDate(day.getDate() + 1);
+                var mm = day.getMonth() + 1;
                 var dd = day.getDate();
-                var mm = day.getMonth()+1;
-                document.getElementById(day_name[i]).innerHTML= mm.toString() + "/"+ dd.toString() + kor_day_name[i];        
+                document.getElementById(day_name[i]).innerHTML = mm + "/" + dd + " " + kor_day_name[i];
 
-                for(var j=0; j<day_list[i].length; j++){
-                    var element = document.getElementById( day_name[i]+'_'+day_list[i][j] );
+                for(var j = 0; j < day_list[i].length; j++){
+                    var element = document.getElementById(day_name[i] + '_' + day_list[i][j]);
                     if (element) {
-                        element.innerHTML="예약";
-                        element.style.backgroundColor='rgba(218, 33, 39, 0.7)';
+                        element.innerHTML = "예약됨";
+                        element.className = "reserved";
                     }
                 }
             }
         });
-    </script>
 
-    <!-- Ajax 예약 점검 -->
-    <script type="text/javascript">
         $("#room_check").click(function(){
             var equipment_id = $('#equipment_id').val();
             var room_date = $('#datepicker').val();
             var room_start_time = $('#room_start_time').val();
-            var room_finish_time= $('#room_finish_time').val();
+            var room_finish_time = $('#room_finish_time').val();
+
+            if (room_start_time === "선택" || !room_finish_time) {
+                alert("시간을 선택해주세요.");
+                return;
+            }
 
             $.ajax({ 
                 type: "POST", 
                 url: "{% url 'check' %}", 
-                data: {'equipment_id': equipment_id, 'room_date': room_date, 'room_start_time':room_start_time, 'room_finish_time':room_finish_time, 'csrfmiddlewaretoken': '{{ csrf_token }}'}, 
+                data: {
+                    'equipment_id': equipment_id, 
+                    'room_date': room_date, 
+                    'room_start_time': room_start_time, 
+                    'room_finish_time': room_finish_time, 
+                    'csrfmiddlewaretoken': '{{ csrf_token }}'
+                }, 
                 dataType: "json", 
                 success: function(response){ 
                     if(response.check_error == 0){
-                        var result = confirm("예약하시겠습니까?");
-                        if(result){
+                        if(confirm("이 시간으로 예약하시겠습니까?")){
                             $('#new_form').submit(); 
                         }
-                    }
-                    else{
+                    } else {
                         alert(response.message);
                     }
                 },
-                error: function(request, status, error){ 
-                    alert("입력값을 다시 한번 확인 부탁드립니다");
+                error: function(){ 
+                    alert("예약 확인 중 오류가 발생했습니다.");
                 },
             });
-        })
+        });
     </script>
-</body>
-<style>
-    #room_check{
-        width: 70px;
-        height: 35px;
-        bottom: 15vh;
-        background: rgba(218,33,39);
-        font-size: 1em;
-        color: rgb(225,225,225);
-        border: none;
-        border-radius: 3px;
-    }
-
-    #room_check:hover{
-        cursor: pointer;
-    }
-
-    main>#reserve_all td{
-        color:aliceblue;
-        font-family:'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
-    }
-</style>
-</html>
+{% endblock %}

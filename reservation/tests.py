@@ -1,7 +1,6 @@
 from django.test import TestCase
-from django.contrib.auth.models import User # For creating test users if needed by helpers
 from unittest.mock import patch, MagicMock, call
-from datetime import datetime, date, timedelta
+from datetime import datetime, date
 
 # Functions to test from reservation.views
 from .views import (

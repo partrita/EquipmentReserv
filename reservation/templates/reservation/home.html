@@ -1,111 +1,133 @@
-﻿{% load static %}
+{% extends 'reservation/base.html' %}
+{% load static %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>사회과학대학</title>
-    <link rel=icon href="{% static 'reservation/titlelogo.png' %}" sizes="16x16" type="image/png">
-    <link rel="stylesheet" href="{% static 'reservation/main.css' %}">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.3/dist/Chart.min.js"></script>
-    <script type="text/javascript" src="http://code.jquery.com/jquery-3.2.1.min.js"></script>
-    <script src="https://kit.fontawesome.com/eab0835984.js" crossorigin="anonymous"></script>
-</head>
-<body>
-    <header>
-        <div id="toplogo">
-            <img src="{% static 'reservation/knu_logo.png' %}" alt="경북대학교">
+{% block title %}홈 - 장비 예약 시스템{% endblock %}
+
+{% block content %}
+<!-- FullCalendar CSS -->
+<link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.css' rel='stylesheet' />
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.js'></script>
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/locales-all.min.js'></script>
+
+<div class="row align-items-md-stretch mb-4 mt-4">
+    <div class="col-md-12">
+        <div class="h-100 p-5 text-white bg-dark rounded-3">
+            <h1>실험 장비 예약 시스템</h1>
+            <p>실험실 장비를 간편하게 예약하고 관리하세요.</p>
+            {% if not user.is_authenticated %}
+                <a href="{% url 'signup' %}" class="btn btn-outline-light">시작하기 (회원가입)</a>
+            {% endif %}
         </div>
-        <div class="logo">
-            <img src="{% static 'reservation/navBtn.svg' %}" id="nav_btn" onclick="openNav()" alt="메뉴버튼">
-            <h1><a href="{% url 'home' %}">사회과학대학</a></h1>
-        </div>
-        <nav id="mySidenav" class="sidenav">
-            <ul>
-                <a href="javascript:void(0)" class="navCloseBtn" onclick="closeNav()">&times;</a>
-                {% if user.is_authenticated %}
-                    <a href="#"><li class="navFirst">{{user.profile.realname}}<br>{{user.username}} / {{user.profile.department}}</li></a>
-                    <a href="{% url 'myreservation' %}"><li>예약현황</li></a>
-                    <a class="nav-link" href="javascript:{document.getElementById('logout').submit()}"><li>로그아웃</li></a>
-                    <form id="logout" method="POST" action="{% url 'logout' %}">
-                        {% csrf_token %}
-                        <input type="hidden"/>
-                    </form>
-                {% else %}
-                    <a href="{% url 'login' %}"><li>로그인</li></a>
-                    <a href="{% url 'signup' %}"><li>회원가입</li></a>
-                {% endif %}
-            </ul>
-        </nav>
-    </header>
-    <main>
-        <section id="chart">
-            {% for equipment in equipments %}
-            <div class="chart_div" onclick="location.href='{% url 'new' equipment.id %}'" style="cursor:pointer; border: 1px solid #ccc; padding: 10px; margin: 10px; border-radius: 8px; text-align: center;">
-                <h3>{{ equipment.name }}</h3>
-                <p>{{ equipment.description|truncatewords:10 }}</p>
-                <button style="background-color: #da2127; color: white; border: none; padding: 5px 10px; border-radius: 4px;">예약하기</button>
-            </div>
-            {% endfor %}
-        </section>
-        <section id="mypage">
-            <a href="{% url 'myreservation' %}"><button id="btn_mypage">나의 예약 현황</button></a>
-        </section>
-        <section id="main_post">
-            <div class="main_notice main_post_item">
-                <h4><a href="{% url 'index' "공지사항" %}">공지사항</a></h4>
-                <ul>
-                    {% for notice in notices %}
-                        <li><a href="{% url 'detail' notice.id %}">{{notice}}</a></li>
-                    {% endfor %}
-                </ul>
-            </div>
-            <div class="main_board main_post_item">
-                <h4><a href="{% url 'index' "분실물" %}">분실물</a></h4>
-                <ul>
-                    {% for lost in losts %}
-                    <li><a href="{% url 'detail' lost.id %}">{{lost}}</a></li>
-                    {% endfor %}
-                </ul>
-            </div>
-        </section>
-        <section id="today_reservations" style="margin: 20px; padding: 10px; background: #f9f9f9; border-radius: 8px;">
-            <h3>오늘의 전체 예약 현황</h3>
-            <ul>
-                {% for res in reservations_today %}
-                    <li>{{ res.equipment.name }}: {{ res.room_start_time }} ~ {{ res.room_finish_time }} ({{ res.user }})</li>
-                {% empty %}
-                    <li>오늘 예약이 없습니다.</li>
-                {% endfor %}
-            </ul>
-        </section>
-    </main>
-    <footer>
-        <img src="{% static 'reservation/footer_logo.png' %}" alt="footer_logo" />
-        <span class="contact" style="font-size:x-large; color:inherit ;">
-                <a href="https://pf.kakao.com/_JdHwxb" target="_blank" style="color:white;"><i class="far fa-comment"></i></a>
-                <a href="https://www.instagram.com/knu_highlight/?hl=ko" target="_blank" style="color:white;"><i class="fab fa-instagram"></i></a>
-                <a href="https://www.facebook.com/knussc/" target="_blank" style="color:white;"><i class="fab fa-facebook-square"></i></a>
-        </span>
-        <p>사회과학대학 Tel: 053-950-5202~4</p>
-        <p>멋쟁이 사자처럼 <span style="font-size: x-small;"><a target="_blank" style="color:white; text-decoration: none;" href="https://github.com/YoonShinWoong">윤신웅</a> <a target="_blank" style="color:white; text-decoration: none;"href="https://github.com/yeonjudkwl">홍연주</a></span></p>
-        <p class="copyright">Copyright(c) Kyungpook National University. All rights reserved.</p>
-    </footer>
-    <script src="{% static 'reservation/main.js' %}"></script>
-    <script>
-        $(function() {
-            var msg = "{{msg}}";
-            if(msg != ""){
-                alert(msg);
+    </div>
+</div>
+
+<div class="row mb-5">
+    <div class="col-12">
+        <h2 class="pb-2 border-bottom">예약 현황 달력</h2>
+        <div id='calendar' class="p-3 bg-white border rounded shadow-sm"></div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var calendarEl = document.getElementById('calendar');
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            },
+            locale: 'ko',
+            events: {{ calendar_events|safe }},
+            eventTimeFormat: {
+                hour: '2-digit',
+                minute: '2-digit',
+                meridiem: false,
+                hour12: false
             }
         });
-    </script>
-</body>
-</html>
-<style>
-@media only screen and (min-height: 672px) {
-    footer{
-        position: fixed;
-    }
-}
-</style>
+        calendar.render();
+    });
+</script>
+
+<h2 class="pb-2 border-bottom">예약 가능한 장비</h2>
+<div class="row row-cols-1 row-cols-md-3 g-4 mb-5">
+    {% for equipment in equipments %}
+    <div class="col">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">{{ equipment.name }}</h5>
+                <p class="card-text text-muted">{{ equipment.description|truncatewords:20 }}</p>
+            </div>
+            <div class="card-footer bg-transparent border-top-0 d-grid">
+                <a href="{% url 'new' equipment.id %}" class="btn btn-primary">예약하기</a>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <p class="text-center py-5">현재 등록된 장비가 없습니다.</p>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="row g-5">
+    <div class="col-md-6">
+        <h3 class="pb-2 border-bottom">공지사항</h3>
+        <div class="list-group mb-4">
+            {% for notice in notices %}
+                <a href="{% url 'detail' notice.id %}" class="list-group-item list-group-item-action">
+                    {{ notice.title }}
+                    <small class="text-muted d-block">{{ notice.pub_date|date:"Y-m-d" }}</small>
+                </a>
+            {% empty %}
+                <p class="text-muted">공지사항이 없습니다.</p>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="col-md-6">
+        <h3 class="pb-2 border-bottom">분실물</h3>
+        <div class="list-group mb-4">
+            {% for lost in losts %}
+                <a href="{% url 'detail' lost.id %}" class="list-group-item list-group-item-action">
+                    {{ lost.title }}
+                    <small class="text-muted d-block">{{ lost.pub_date|date:"Y-m-d" }}</small>
+                </a>
+            {% empty %}
+                <p class="text-muted">등록된 분실물이 없습니다.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="row mb-5">
+    <div class="col-12">
+        <h3 class="pb-2 border-bottom">오늘의 전체 예약 현황</h3>
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>장비명</th>
+                        <th>시간</th>
+                        <th>예약자</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for res in reservations_today %}
+                    <tr>
+                        <td>{{ res.equipment.name }}</td>
+                        <td>{{ res.room_start_time }} ~ {{ res.room_finish_time }}</td>
+                        <td>{{ res.user }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="3" class="text-center text-muted">오늘 예약이 없습니다.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

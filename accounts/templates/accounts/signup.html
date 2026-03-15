@@ -1,54 +1,50 @@
-﻿{% load static %}
+{% extends 'reservation/base.html' %}
+{% load static %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>사회과학대학</title>
-    <link rel=icon href="{% static 'reservation/titlelogo.png' %}" sizes="16x16" type="image/png">
-    <link rel="stylesheet" href="{% static 'reservation/main.css' %}">
-</head>
-<body class="sign_bg">
-    <header>
-        <div id="signlogo">
-            <h1><a href="{% url 'home' %}">사회과학대학</a></h1>
-        </div>
-    </header>
-    <main>
-        <section id="sign_inputs">
-            <form action="{% url 'signup' %}" method="POST">
-                {% csrf_token %}
-                <select id="major" name="department" style="padding-left: 15px;">
-                    <option value="소속학과">소속학과</option>
-                    <option value="정치외교학과">정치외교학과</option>
-                    <option value="사회학과">사회학과</option>
-                    <option value="지리학과">지리학과</option>
-                    <option value="문헌정보학과">문헌정보학과</option>
-                    <option value="심리학과">심리학과</option>
-                    <option value="사회복지학부">사회복지학부</option>
-                    <option value="신문방송학과">신문방송학과</option>
-                </select>
-                <input type="text" name="realname" id="student_name" placeholder="이      름">
-                <input type="text" name="username" id="student_id" placeholder="학      번">
-                
-                <div class="signup">
-                    <input type="password" name="password1" id="password" placeholder="비밀번호">
-                    <input type="password" name="password2" id="confirm_password" placeholder="비밀번호 확인">
-                    <br>
-                    <span style="color:white; font-size:0.88em;">인증 메일을 발송할 웹메일 ID를 입력해주세요<br>(통합정보시스템 ID와 동일합니다) </span>
-                    <br/>
-                    <input type="text" name="email" id="id" placeholder="학교 웹메일 ID" style="width:150px; display:table-column-group"><span style="color:white;"> @ </span><input name="email" type="email" value="knu.ac.kr" style="width:110px; display:table-column-group" disabled>
-                
-                    <button class="sign_btn">회원가입</button>
-                    <!-- <input type="button" value="회원가입" class="sign_btn"> -->
+{% block title %}회원가입 - 장비 예약 시스템{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6 col-lg-4">
+        <div class="card shadow">
+            <div class="card-body p-5">
+                <h2 class="text-center mb-4">회원가입</h2>
+                <form action="{% url 'signup' %}" method="POST">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="id_username" class="form-label">아이디</label>
+                        <input type="text" name="username" class="form-control" id="id_username"
+                            placeholder="아이디를 입력하세요" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="id_realname" class="form-label">이름</label>
+                        <input type="text" name="realname" class="form-control" id="id_realname" placeholder="이름을 입력하세요"
+                            required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="id_email" class="form-label">이메일 주소</label>
+                        <input type="email" name="email" class="form-control" id="id_email"
+                            placeholder="email@example.com" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="id_password1" class="form-label">비밀번호</label>
+                        <input type="password" name="password1" class="form-control" id="id_password1"
+                            placeholder="비밀번호" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="id_password2" class="form-label">비밀번호 확인</label>
+                        <input type="password" name="password2" class="form-control" id="id_password2"
+                            placeholder="비밀번호 확인" required>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">가입하기</button>
+                    </div>
+                </form>
+                <div class="text-center mt-3">
+                    <p class="text-muted">이미 계정이 있으신가요? <a href="{% url 'login' %}">로그인</a></p>
                 </div>
-            </form>
-            <a style="color:aliceblue; font-size:1em;text-decoration:none;" href="{% url 'login' %}">로그인</a>
-        </section>
-    </main>
-</body>
-<style>
-    body.sign_bg>main>#sign_inputs input{
-        width:290px;
-    }
-</style>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,9 +1,6 @@
-﻿from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect
 from django.contrib.auth.models import User
 from .models import Profile
-from django.utils import timezone
-from datetime import datetime, timedelta
-from reservation.models import Reservation, Blog
 # Import the new helper function
 from reservation.views import get_blog_posts
 from django.contrib import auth
@@ -19,7 +16,7 @@ from django.contrib.sites.shortcuts import get_current_site
 from django.template.loader import render_to_string
 from django.utils.http import urlsafe_base64_encode,urlsafe_base64_decode
 from django.core.mail import EmailMessage
-from django.utils.encoding import force_bytes, force_text
+from django.utils.encoding import force_bytes, force_str
 # Import reverse for redirecting with URL names
 from django.urls import reverse
 from .tokens import account_activation_token
@@ -43,24 +40,23 @@ def signup(request):
         # 비밀번호 확인도 같다면
         if request.POST['password1'] ==request.POST['password2']:
             # 유저 만들기
-            mail_to = request.POST["email"] + "@knu.ac.kr" # 학교 웹메일
+            mail_to = request.POST["email"]
             
             # 이메일이 있다면 실패
             if len(User.objects.filter(email=mail_to)) == 0:
                 user = User.objects.create_user(username=request.POST['username'], email=mail_to, password=request.POST['password1'])
-                user.is_active = False
+                user.is_active = True
                 user.save()
                 realname = request.POST['realname'] # 실명
-                department = request.POST['department'] # 소속
-                profile = Profile(user=user, realname=realname, department=department)
+                profile = Profile(user=user, realname=realname)
                 profile.save() # 저장
 
-                current_site = get_current_site(request)
-                uid = urlsafe_base64_encode(force_bytes(user.pk))
-                token = account_activation_token.make_token(user)
-                send_activation_email(request, user, current_site, uid, token)
+                # current_site = get_current_site(request)
+                # uid = urlsafe_base64_encode(force_bytes(user.pk))
+                # token = account_activation_token.make_token(user)
+                # send_activation_email(request, user, current_site, uid, token)
 
-                msg = mail_to + " 주소로 인증 메일을 발송하였습니다. " + "인증 후 이용해주세요."
+                msg = "회원가입이 완료되었습니다. 로그인 후 이용해주세요."
                 # Redirect to reservation home view with a success message
                 # Make sure 'home' is the correct name of the URL pattern for reservation.views.home
                 return redirect(f"{reverse('home')}?msg={msg}")
@@ -104,7 +100,7 @@ def logout(request):
 
 def activate(request, uidb64, token):
     try:
-        uid = force_text(urlsafe_base64_decode(uidb64))
+        uid = force_str(urlsafe_base64_decode(uidb64))
         user = User.objects.get(pk=uid)
     except(TypeError, ValueError, OverflowError, User.DoesNotExsit):
         user = None
@@ -117,12 +113,7 @@ def activate(request, uidb64, token):
         # Use the helper function to get notices and lost items
         notices = get_blog_posts(category_name="공지사항", count=3)
         losts = get_blog_posts(category_name="분실물", count=3)
-        # The proportion data is not available here, and might not be necessary for this error page.
-        # If it's crucial, activate might need to redirect to home with a message,
-        # or home view logic needs to be more flexible.
-        # For now, rendering reservation/home.html without proportion.
-        # Consider creating a dedicated error display page or using Django messages framework.
-        return render(request, 'reservation/home.html', {'notices':notices, 'losts':losts, 'msg' : '웹 메일 인증 오류가 발생하였습니다'})
+        return render(request, 'reservation/home.html', {'notices':notices, 'losts':losts, 'msg' : '이메일 인증 오류가 발생하였습니다'})
     # There was a 'return' statement here with no value, which is unnecessary.
     # If the intention was to ensure the function always returns an HttpResponse,
     # the else block already does. If user is None and token check fails, it falls through.
