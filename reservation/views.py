@@ -3,13 +3,14 @@ from .models import Reservation, Blog, Equipment
 from django.utils import timezone
 from datetime import datetime, timedelta, date
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
 import json
-from django.db.models import Q
+from django.db.models import Q, QuerySet
+from typing import Tuple, List, Optional, Callable
 from utils import myrange # Import myrange from root utils.py
 
 # Helper function for new view: Calculates start_day and related date parameters
-def _get_week_start_day_and_params(today):
+def _get_week_start_day_and_params(today: datetime) -> Tuple[datetime, int, int, int]:
     today_day = today.weekday()
     weekday_mark = 0
     if today_day < 5:  # Weekday
@@ -24,7 +25,7 @@ def _get_week_start_day_and_params(today):
     return start_day, start_day_diff, weekday_mark, date_diff
 
 # Helper function for new view: Gets list of daily reservations
-def _get_daily_reservations_list(reservations_qs, equipment_id, username, start_day, myrange_func):
+def _get_daily_reservations_list(reservations_qs: QuerySet, equipment_id: int, username: Optional[str], start_day: datetime, myrange_func: Callable) -> List[List[float]]:
     day_list = []
     for i in range(0, 5):  # Monday to Friday
         day = start_day + timedelta(days=i)
@@ -38,7 +39,7 @@ def _get_daily_reservations_list(reservations_qs, equipment_id, username, start_
     return day_list
 
 ########################## C
-def new(request, equipment_id):
+def new(request: HttpRequest, equipment_id: int) -> HttpResponse:
     today = datetime.now()
     start_day, start_day_diff, weekday_mark, date_diff = _get_week_start_day_and_params(today)
     
@@ -56,7 +57,7 @@ def new(request, equipment_id):
     })
 
 # Helper function for check view: Checks for reservation overlaps
-def _check_reservation_overlap(reservations_qs, equipment_id, reserve_date, start_time, finish_time):
+def _check_reservation_overlap(reservations_qs: QuerySet, equipment_id: int, reserve_date: date, start_time: float, finish_time: float) -> bool:
     if reservations_qs.filter(
         equipment_id=equipment_id, room_date=reserve_date,
         room_start_time__lt=finish_time,
@@ -67,7 +68,7 @@ def _check_reservation_overlap(reservations_qs, equipment_id, reserve_date, star
 
 # ajax 통신
 @login_required
-def check(request):
+def check(request: HttpRequest) -> HttpResponse:
     equipment_id = request.POST.get('equipment_id', None)
     room_date_vr = request.POST.get('room_date', None)
     try:
@@ -95,7 +96,7 @@ def check(request):
 
 # C
 @login_required
-def create(request):
+def create(request: HttpRequest) -> HttpResponse:
     equipment_id = request.GET['equipment_id']
     reserve_date = datetime.strptime(request.GET['room_date'], "%Y-%m-%d ").date()
 
@@ -110,7 +111,7 @@ def create(request):
 
     return redirect('/reservation/my')
 
-def home(request):
+def home(request: HttpRequest) -> HttpResponse:
     equipments = Equipment.objects.all()
     notices = Blog.objects.filter(category="공지사항").order_by('-pub_date')[:3]
     losts = Blog.objects.filter(category="분실물").order_by('-pub_date')[:3]
@@ -150,28 +151,28 @@ def home(request):
     })
 
 # R 
-def detail(request, blog_id) : 
+def detail(request: HttpRequest, blog_id: int) -> HttpResponse : 
     blog_detail = get_object_or_404(Blog, pk= blog_id)
     return render(request, 'reservation/detail.html', {'blog':blog_detail})
 
-def index(request, category_name):
+def index(request: HttpRequest, category_name: str) -> HttpResponse:
     blogs = Blog.objects.filter(category=category_name).order_by('-pub_date')
     category = category_name
     return render(request, 'reservation/index.html', {'category':category, 'blogs':blogs})
 
 # Helper function used by other apps (e.g., accounts)
-def get_blog_posts(category_name, count):
+def get_blog_posts(category_name: str, count: int) -> QuerySet:
     return Blog.objects.filter(category=category_name).order_by('-pub_date')[:count]
 
 ########################## U
-def edit(request,reservation_id):
+def edit(request: HttpRequest, reservation_id: int) -> HttpResponse:
     reservation = get_object_or_404(Reservation, pk= reservation_id)
     min_date = datetime.now().strftime("%Y-%m-%d")
     max_date = (datetime.now() +timedelta(days=14)).strftime("%Y-%m-%d")
     return render(request, 'reservation/edit.html', {'reservation':reservation, 'min_date':min_date, 'max_date':max_date})
 
 # U
-def update(request,reservation_id):
+def update(request: HttpRequest, reservation_id: int) -> HttpResponse:
     reservation= get_object_or_404(Reservation, pk= reservation_id)
     reservation.room_date= request.GET['room_date']
     reservation.room_start_time = request.GET['room_start_time']
@@ -181,7 +182,7 @@ def update(request,reservation_id):
     return redirect('/reservation/my')
 
 ########################## D
-def delete(request, reservation_id):
+def delete(request: HttpRequest, reservation_id: int) -> HttpResponse:
     reservation= get_object_or_404(Reservation, pk= reservation_id)
     if reservation.user == request.user.username:
         reservation.delete()
@@ -189,7 +190,7 @@ def delete(request, reservation_id):
     
 ########################## MY 예약
 @login_required
-def myreservation(request):
+def myreservation(request: HttpRequest) -> HttpResponse:
     today = date.today()
     now_time = datetime.now()
     now = now_time.hour + (now_time.minute / 60) 

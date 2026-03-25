@@ -19,7 +19,10 @@ import reservation.views
 from django.conf.urls.static import static
 from django.conf import settings
 
-urlpatterns = [
+from typing import List, Union
+from django.urls.resolvers import URLPattern, URLResolver
+
+urlpatterns: List[Union[URLPattern, URLResolver]] = [
     path('admin/', admin.site.urls),
     path('', reservation.views.home, name='home'),
     path('blog/<int:blog_id>', reservation.views.detail, name="detail"),

@@ -6,7 +6,7 @@ class Equipment(models.Model):
     name = models.CharField(max_length=50, verbose_name="장비 이름")
     description = models.TextField(blank=True, verbose_name="장비 설명")
     
-    def __str__(self):
+    def __str__(self) -> str:
         return self.name
 
 class Reservation(models.Model):
@@ -17,7 +17,7 @@ class Reservation(models.Model):
     room_finish_time = models.FloatField(verbose_name="종료 시간 (0-24)")
     pub_date = models.DateTimeField(default=timezone.now, verbose_name="작성 일시")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.user} - {self.equipment.name if self.equipment else 'N/A'} ({self.room_date})"
 
 class Blog(models.Model):
@@ -26,5 +26,5 @@ class Blog(models.Model):
     pub_date = models.DateTimeField('date published')
     description = RichTextUploadingField(blank=True, null=True)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.title

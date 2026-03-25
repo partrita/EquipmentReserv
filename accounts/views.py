@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect
+from django.http import HttpRequest, HttpResponse
 from django.contrib.auth.models import User
 from .models import Profile
 # Import the new helper function
@@ -12,17 +13,16 @@ from django.urls import reverse_lazy
 
 
 # SMTP 관련 인증
-from django.contrib.sites.shortcuts import get_current_site
 from django.template.loader import render_to_string
-from django.utils.http import urlsafe_base64_encode,urlsafe_base64_decode
+from django.utils.http import urlsafe_base64_decode
 from django.core.mail import EmailMessage
-from django.utils.encoding import force_bytes, force_str
+from django.utils.encoding import force_str
 # Import reverse for redirecting with URL names
 from django.urls import reverse
 from .tokens import account_activation_token
 
 # Helper function to send activation email
-def send_activation_email(request, user, current_site, uid, token):
+def send_activation_email(request: HttpRequest, user: User, current_site: any, uid: str, token: str) -> None:
     message = render_to_string('accounts/activation_email.html', {
         'user': user,
         'domain': current_site.domain,
@@ -34,7 +34,7 @@ def send_activation_email(request, user, current_site, uid, token):
     email = EmailMessage(mail_title, message, to=[mail_to])
     email.send()
 
-def signup(request):
+def signup(request: HttpRequest) -> HttpResponse:
     # 포스트 방식으로 들어오면
     if request.method == 'POST':
         # 비밀번호 확인도 같다면
@@ -68,10 +68,10 @@ def signup(request):
 
 
 # 메일확인
-def confirm(request):
+def confirm(request: HttpRequest) -> HttpResponse:
     return render(request, 'accounts/confirm.html')
 
-def login(request):
+def login(request: HttpRequest) -> HttpResponse:
     # 포스트 방식으로 들어오면
     if request.method == 'POST':
         # 정보 가져와서 
@@ -89,7 +89,7 @@ def login(request):
     else:
         return render(request, 'accounts/login.html')
 
-def logout(request):
+def logout(request: HttpRequest) -> HttpResponse:
     # 포스트 방식으로 들어오면
     if request.method == 'POST':
         # 유저 로그아웃
@@ -98,7 +98,7 @@ def logout(request):
     # GET 요청 시 홈으로 리다이렉트
     return redirect('home')
 
-def activate(request, uidb64, token):
+def activate(request: HttpRequest, uidb64: str, token: str) -> HttpResponse:
     try:
         uid = force_str(urlsafe_base64_decode(uidb64))
         user = User.objects.get(pk=uid)

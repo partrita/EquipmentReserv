@@ -1,7 +1,10 @@
 from django.urls import path
 from . import views
 
-urlpatterns = [
+from typing import List, Union
+from django.urls.resolvers import URLPattern, URLResolver
+
+urlpatterns: List[Union[URLPattern, URLResolver]] = [
     path('signup/', views.signup, name='signup'),
     path('login/', views.login, name='login'),
     path('logout/',views.logout, name='logout'),

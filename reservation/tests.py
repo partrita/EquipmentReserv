@@ -7,7 +7,6 @@ from .views import (
     _get_week_start_day_and_params,
     _get_daily_reservations_list,
     _check_reservation_overlap,
-    _get_room_proportions,
     get_blog_posts,
 )
 # Models that might be needed for mocking
@@ -75,10 +74,10 @@ class GetDailyReservationsListTests(TestCase):
         mock_reservation_manager.filter.side_effect = filter_side_effect
 
         start_day_datetime = datetime(2020, 1, 6)
-        room_type = '1A'
+        equipment_id = 1
         username = 'testuser'
 
-        day_list = _get_daily_reservations_list(mock_reservation_manager, room_type, username, start_day_datetime, myrange)
+        day_list = _get_daily_reservations_list(mock_reservation_manager, equipment_id, username, start_day_datetime, myrange)
 
         self.assertEqual(len(day_list), 5)
         self.assertEqual(day_list[0], expected_slots_day0)
@@ -88,11 +87,11 @@ class GetDailyReservationsListTests(TestCase):
         self.assertEqual(day_list[4], [])
 
         expected_filter_calls = [
-            call(room_type=room_type, user=username, room_date=datetime(2020, 1, 6, 0, 0)),
-            call(room_type=room_type, user=username, room_date=datetime(2020, 1, 7, 0, 0)),
-            call(room_type=room_type, user=username, room_date=datetime(2020, 1, 8, 0, 0)),
-            call(room_type=room_type, user=username, room_date=datetime(2020, 1, 9, 0, 0)),
-            call(room_type=room_type, user=username, room_date=datetime(2020, 1, 10, 0, 0)),
+            call(equipment_id=equipment_id, room_date=datetime(2020, 1, 6, 0, 0)),
+            call(equipment_id=equipment_id, room_date=datetime(2020, 1, 7, 0, 0)),
+            call(equipment_id=equipment_id, room_date=datetime(2020, 1, 8, 0, 0)),
+            call(equipment_id=equipment_id, room_date=datetime(2020, 1, 9, 0, 0)),
+            call(equipment_id=equipment_id, room_date=datetime(2020, 1, 10, 0, 0)),
         ]
         self.assertEqual(mock_reservation_manager.filter.call_args_list, expected_filter_calls)
 
@@ -119,33 +118,6 @@ class CheckReservationOverlapTests(TestCase):
 
         mock_qs.exists.return_value = True
         self.assertTrue(_check_reservation_overlap(mock_reservation_objects, room_type, reserve_date, 9.0, 10.0))
-
-class GetRoomProportionsTests(TestCase):
-    @patch('reservation.views.Reservation.objects.filter')
-    def test_get_room_proportions_calculation(self, mock_filter):
-        today = date(2020, 1, 6)
-
-        mock_reservations_1A = [
-            MagicMock(room_start_time=9.0, room_finish_time=10.0),
-            MagicMock(room_start_time=11.0, room_finish_time=11.5)
-        ]
-        mock_reservations_1B = [ MagicMock(room_start_time=14.0, room_finish_time=16.0) ]
-        mock_reservations_3A = []
-
-        def filter_side_effect(room_date, room_type):
-            if room_date == today and room_type == '1A': return mock_reservations_1A
-            if room_date == today and room_type == '1B': return mock_reservations_1B
-            if room_date == today and room_type == '3A': return mock_reservations_3A
-            return []
-
-        mock_filter.side_effect = filter_side_effect
-        proportions = _get_room_proportions(today)
-        self.assertEqual(proportions, [1.5, 2.0, 0.0])
-        mock_filter.assert_has_calls([
-            call(room_date=today, room_type='1A'),
-            call(room_date=today, room_type='1B'),
-            call(room_date=today, room_type='3A'),
-        ], any_order=False) # any_order=False is default but good to be explicit
 
 
 class GetBlogPostsTests(TestCase):
